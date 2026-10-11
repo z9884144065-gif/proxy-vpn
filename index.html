@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>Прокси VPN</title>
+<style>
+:root {
+  --bg:#0b1120; --panel:#141e30; --line:#293750;
+  --text:#f3f6fc; --muted:#98a9c2;
+  --accent:#35d6c1; --gold:#e9c879;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:system-ui,-apple-system,sans-serif;
+}
+header {
+  padding:23px 18px 17px;
+  background:linear-gradient(145deg,#182940,#101827);
+  border-bottom:1px solid var(--line);
+}
+.brand {display:flex;align-items:center;gap:12px}
+.logo {
+  width:46px;height:46px;border-radius:15px;
+  background:#173d49;color:var(--accent);
+  display:grid;place-items:center;font-size:24px;
+}
+h1 {font-size:21px;margin:0}
+.subtitle {font-size:12px;color:var(--muted);margin-top:4px}
+main {max-width:650px;margin:auto;padding:18px 14px 100px}
+.card {
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:19px;padding:18px;margin-bottom:15px;
+}
+.center {text-align:center}
+.power {
+  width:116px;height:116px;border-radius:50%;
+  margin:18px auto;display:grid;place-items:center;
+  background:#102c37;border:2px solid #286b72;
+  color:var(--accent);font-size:43px;
+}
+h2 {font-size:17px;margin:0 0 12px}
+p {line-height:1.5}
+.muted {color:var(--muted);font-size:13px}
+.status {font-weight:650;margin:8px 0}
+button, input {
+  font:inherit;border-radius:12px;
+}
+button {
+  padding:12px 15px;border:1px solid var(--line);
+  color:var(--text);background:#203047;cursor:pointer;
+}
+button.primary {
+  background:var(--accent);color:#082522;
+  font-weight:750;border:0;width:100%;
+}
+button:disabled {opacity:.5;cursor:wait}
+.actions {display:flex;gap:8px;flex-wrap:wrap}
+.actions button {flex:1}
+.server {
+  border:1px solid var(--line);border-radius:13px;
+  padding:13px;margin-top:9px;display:flex;
+  gap:10px;align-items:center;
+}
+.server input {accent-color:var(--accent)}
+.server-info {flex:1;min-width:0}
+.server-name {font-weight:650;overflow-wrap:anywhere}
+.server-meta {font-size:12px;color:var(--muted);margin-top:5px}
+.tag {font-size:11px;color:var(--gold)}
+input[type=text] {
+  width:100%;padding:12px;background:#0c1422;
+  border:1px solid var(--line);color:var(--text);
+  margin:6px 0 12px;
+}
+label {font-size:13px;color:var(--muted)}
+.notice {
+  border-left:3px solid var(--gold);padding:10px 12px;
+  background:#29271f;border-radius:6px;font-size:12px;
+  line-height:1.5;color:#e8dfc4;margin-top:12px;
+}
+nav {
+  position:fixed;bottom:0;left:0;right:0;
+  background:#101827f5;border-top:1px solid var(--line);
+  display:flex;justify-content:center;gap:5px;padding:10px 5px;
+}
+nav button {flex:1;max-width:210px;font-size:12px;padding:11px 4px}
+[hidden] {display:none!important}
+footer {text-align:center;color:var(--muted);font-size:11px;padding:8px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">↗</div>
+    <div>
+      <h1 id="brandName">Прокси VPN</h1>
+      <div class="subtitle">Бесплатный тестовый режим</div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section id="page-connect">
+    <div class="card center">
+      <div class="muted">СОСТОЯНИЕ ПОДКЛЮЧЕНИЯ</div>
+      <div class="power">⏻</div>
+      <div class="status" id="connectionStatus">VPN не подключён</div>
+      <p class="muted">Это веб-инструмент поиска прокси. Кнопка ниже проверяет источники списков, а не создаёт VPN-туннель.</p>
+      <button class="primary" id="loadBtn" onclick="loadProxies()">НАЙТИ ПРОКСИ</button>
+      <div class="muted" id="loadStatus" style="margin-top:12px" aria-live="polite">Готов к поиску</div>
+    </div>
+    <div class="card">
+      <h2>Выбранный сервер</h2>
+      <div id="selectedServer" class="muted">Сначала найди прокси и выбери сервер во вкладке «Серверы».</div>
+    </div>
+    <div class="notice">Внимание: публичные прокси могут записывать твой IP-адрес и трафик. Не вводи через них пароли и платёжные данные.</div>
+  </section>
+
+  <section id="page-servers" hidden>
+    <div class="card">
+      <h2>Доступные прокси</h2>
+      <p class="muted">Источник: публичный список HTTP-прокси. Наличие адреса в списке не означает, что он работает.</p>
+      <div class="actions">
+        <button onclick="loadProxies()">Обновить список</button>
+        <button onclick="copySelected()">Копировать выбранный</button>
+      </div>
+      <div id="proxyList" style="margin-top:12px" aria-live="polite">
+        <p class="muted">Нажми «Найти прокси», чтобы загрузить список.</p>
+      </div>
+      <div class="notice">Браузерная страница не может надёжно проверить TCP-порт каждого прокси. Для настоящей проверки доступности добавим серверную функцию на следующем этапе.</div>
+    </div>
+  </section>
+
+  <section id="page-settings" hidden>
+    <div class="card">
+      <h2>Настройки бренда</h2>
+      <label for="nameInput">Название приложения</label>
+      <input id="nameInput" type="text" maxlength="40" placeholder="Например, Прокси VPN">
+      <button class="primary" onclick="saveBrand()">Сохранить название</button>
+      <p class="muted">Название сохраняется в этом браузере. Позже вынесем его в общий файл настроек.</p>
+    </div>
+    <div class="card">
+      <h2>О приложении</h2>
+      <p class="muted">Бесплатный прототип. Для полноценного VPN нужны сервер или совместимый VPN-клиент и отдельная инфраструктура.</p>
+      <button onclick="resetBrand()">Вернуть исходное название</button>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button onclick="showPage('connect')">⌂ Подключение</button>
+  <button onclick="showPage('servers')">◎ Серверы</button>
+  <button onclick="showPage('settings')">⚙ Настройки</button>
+</nav>
+
+<script>
+const SOURCES = [
+  "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
+  "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt"
+];
+
+let proxies = [];
+let selectedProxy = "";
+
+function showPage(page) {
+  ["connect","servers","settings"].forEach(p => {
+    document.getElementById("page-" + p).hidden = p !== page;
+  });
+}
+
+function applyBrand() {
+  let name = "Прокси VPN";
+  try { name = localStorage.getItem("proxyVpnBrand") || name; } catch(e) {}
+  document.getElementById("brandName").textContent = name;
+  document.title = name;
+  document.getElementById("nameInput").value = name;
+}
+
+function saveBrand() {
+  const name = document.getElementById("nameInput").value.trim();
+  if (!name) { alert("Введи название приложения."); return; }
+  try { localStorage.setItem("proxyVpnBrand", name); }
+  catch(e) { alert("Не удалось сохранить название в браузере."); return; }
+  applyBrand();
+  alert("Название сохранено.");
+}
+
+function resetBrand() {
+  try { localStorage.removeItem("proxyVpnBrand"); } catch(e) {}
+  applyBrand();
+}
+
+async function loadProxies() {
+  const btn = document.getElementById("loadBtn");
+  const status = document.getElementById("loadStatus");
+  const list = document.getElementById("proxyList");
+  btn.disabled = true;
+  status.textContent = "Загружаем публичные списки…";
+  list.innerHTML = '<p class="muted">Загрузка…</p>';
+
+  let found = [];
+  let errors = 0;
+
+  for (const url of SOURCES) {
+    try {
+      const response = await fetch(url, {cache:"no-store"});
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      const body = await response.text();
+      const matches = body.match(/\b(?:\d{1,3}\.){3}\d{1,3}:\d{2,5}\b/g) || [];
+      found.push(...matches);
+    } catch(e) {
+      errors++;
+    }
+  }
+
+  proxies = [...new Set(found)].filter(validProxy).slice(0,100);
+  renderProxies();
+
+  if (proxies.length) {
+    status.textContent = "Получено адресов: " + proxies.length +
+      (errors ? ". Один или несколько источников недоступны." : ".") +
+      " Проверка каждого прокси ещё не выполнена.";
+    document.getElementById("connectionStatus").textContent = "Список загружен — VPN не подключён";
+  } else {
+    status.textContent = "Не удалось получить список. Возможно, источник недоступен или запрос заблокирован.";
+    list.innerHTML = '<p class="muted">Попробуй обновить страницу позже. Для устойчивой загрузки подключим серверный API.</p>';
+  }
+  btn.disabled = false;
+}
+
+function validProxy(item) {
+  const parts = item.split(":");
+  const nums = parts[0].split(".").map(Number);
+  const port = Number(parts[1]);
+  return nums.length === 4 &&
+    nums.every(n => Number.isInteger(n) && n >= 0 && n <= 255) &&
+    Number.isInteger(port) && port >= 1 && port <= 65535;
+}
+
+function renderProxies() {
+  const list = document.getElementById("proxyList");
+  if (!proxies.length) {
+    list.innerHTML = '<p class="muted">Список пуст.</p>';
+    return;
+  }
+  list.innerHTML = "";
+  proxies.forEach((proxy, i) => {
+    const row = document.createElement("label");
+    row.className = "server";
+    const radio = document.createElement("input");
+    radio.type = "radio";
+    radio.name = "proxy";
+    radio.value = proxy;
+    radio.checked = proxy === selectedProxy;
+    radio.addEventListener("change", () => selectProxy(proxy));
+    const info = document.createElement("div");
+    info.className = "server-info";
+    const name = document.createElement("div");
+    name.className = "server-name";
+    name.textContent = proxy;
+    const meta = document.createElement("div");
+    meta.className = "server-meta";
+    meta.textContent = "HTTP-прокси · доступность не проверена";
+    info.append(name, meta);
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = "№ " + (i + 1);
+    row.append(radio, info, tag);
+    list.appendChild(row);
+  });
+}
+
+function selectProxy(proxy) {
+  selectedProxy = proxy;
+  document.getElementById("selectedServer").textContent =
+    proxy + " — адрес выбран, соединение не установлено.";
+  document.getElementById("connectionStatus").textContent =
+    "Прокси выбран — VPN не подключён";
+}
+
+async function copySelected() {
+  if (!selectedProxy) {
+    alert("Сначала выбери прокси из списка.");
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(selectedProxy);
+    alert("Адрес скопирован: " + selectedProxy);
+  } catch(e) {
+    prompt("Скопируй адрес прокси:", selectedProxy);
+  }
+}
+
+applyBrand();
+</script>
+</body>
+</html>
